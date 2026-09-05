@@ -379,6 +379,95 @@ class StoreSettingResource extends Resource
                                     ->columns(2),
                             ]),
 
+                        // Everything the shopper sees on the storefront that
+                        // is not a page of its own.
+                        Forms\Components\Tabs\Tab::make(__('admin.storefront_widgets'))
+                            ->schema([
+                                Forms\Components\Section::make(__('admin.coupon_popup'))
+                                    ->description(__('admin.coupon_popup_hint'))
+                                    ->schema([
+                                        Forms\Components\Toggle::make('coupon_popup_enabled')
+                                            ->label(__('admin.coupon_popup_enabled'))
+                                            ->live()
+                                            ->columnSpanFull(),
+
+                                        Forms\Components\TextInput::make('coupon_popup_title_ar')
+                                            ->label(__('admin.coupon_popup_title_ar'))
+                                            ->placeholder('خصم 10% على أول طلب'),
+
+                                        Forms\Components\TextInput::make('coupon_popup_title_en')
+                                            ->label(__('admin.coupon_popup_title_en'))
+                                            ->placeholder('10% off your first order'),
+
+                                        Forms\Components\Textarea::make('coupon_popup_text_ar')
+                                            ->label(__('admin.coupon_popup_text_ar'))
+                                            ->rows(3),
+
+                                        Forms\Components\Textarea::make('coupon_popup_text_en')
+                                            ->label(__('admin.coupon_popup_text_en'))
+                                            ->rows(3),
+
+                                        Forms\Components\TextInput::make('coupon_popup_code')
+                                            ->label(__('admin.coupon_popup_code'))
+                                            ->helperText(__('admin.coupon_popup_code_hint'))
+                                            ->placeholder('ELLE10'),
+
+                                        Forms\Components\FileUpload::make('coupon_popup_image')
+                                            ->label(__('admin.coupon_popup_image'))
+                                            ->image()
+                                            ->directory('settings/popup')
+                                            ->disk('public')
+                                            ->imageEditor()
+                                            ->maxSize(2048),
+
+                                        Forms\Components\TextInput::make('coupon_popup_button_label_ar')
+                                            ->label(__('admin.coupon_popup_button_label_ar'))
+                                            ->placeholder('تسوقي الآن'),
+
+                                        Forms\Components\TextInput::make('coupon_popup_button_label_en')
+                                            ->label(__('admin.coupon_popup_button_label_en'))
+                                            ->placeholder('Shop now'),
+
+                                        Forms\Components\TextInput::make('coupon_popup_delay')
+                                            ->label(__('admin.coupon_popup_delay'))
+                                            ->helperText(__('admin.coupon_popup_delay_hint'))
+                                            ->numeric()
+                                            ->minValue(0)
+                                            ->maxValue(60)
+                                            ->default(4)
+                                            ->suffix(__('admin.seconds')),
+
+                                        Forms\Components\TextInput::make('coupon_popup_remember_days')
+                                            ->label(__('admin.coupon_popup_remember_days'))
+                                            ->helperText(__('admin.coupon_popup_remember_days_hint'))
+                                            ->numeric()
+                                            ->minValue(0)
+                                            ->maxValue(365)
+                                            ->default(7)
+                                            ->suffix(__('admin.days')),
+                                    ])
+                                    ->columns(2),
+
+                                Forms\Components\Section::make(__('admin.whatsapp_button'))
+                                    ->description(__('admin.whatsapp_button_hint'))
+                                    ->schema([
+                                        Forms\Components\Toggle::make('whatsapp_button_enabled')
+                                            ->label(__('admin.whatsapp_button_enabled'))
+                                            ->default(true)
+                                            ->columnSpanFull(),
+
+                                        Forms\Components\TextInput::make('whatsapp_button_message_ar')
+                                            ->label(__('admin.whatsapp_button_message_ar'))
+                                            ->helperText(__('admin.whatsapp_button_message_hint'))
+                                            ->placeholder('السلام عليكم، عايزة أستفسر عن...'),
+
+                                        Forms\Components\TextInput::make('whatsapp_button_message_en')
+                                            ->label(__('admin.whatsapp_button_message_en'))
+                                            ->placeholder('Hello, I have a question about...'),
+                                    ])
+                                    ->columns(2),
+                            ]),
+
                         Forms\Components\Tabs\Tab::make(__('admin.payment_settings'))
                             ->schema([
                                 Forms\Components\Section::make(__('admin.payment_methods'))
@@ -393,6 +482,11 @@ class StoreSettingResource extends Resource
 
                                         Forms\Components\Toggle::make('wallet_transfer_enabled')
                                             ->label(__('admin.wallet_transfer_enabled'))
+                                            ->default(false),
+
+                                        Forms\Components\Toggle::make('instapay_enabled')
+                                            ->label(__('admin.instapay_enabled'))
+                                            ->helperText(__('admin.instapay_enabled_hint'))
                                             ->default(false),
 
                                         Forms\Components\Toggle::make('payment_proof_required')
@@ -428,6 +522,30 @@ class StoreSettingResource extends Resource
                                         Forms\Components\Textarea::make('wallet_details_en')
                                             ->label(__('admin.wallet_details_en'))
                                             ->rows(4),
+                                    ])
+                                    ->columns(2),
+
+                                Forms\Components\Section::make(__('admin.instapay_details'))
+                                    ->description(__('admin.instapay_details_hint'))
+                                    ->schema([
+                                        Forms\Components\TextInput::make('instapay_handle')
+                                            ->label(__('admin.instapay_handle'))
+                                            ->placeholder('osama3lwany@instapay')
+                                            ->helperText(__('admin.instapay_handle_hint')),
+
+                                        Forms\Components\TextInput::make('instapay_link')
+                                            ->label(__('admin.instapay_link'))
+                                            ->url()
+                                            ->placeholder('https://ipn.eg/S/username/instapay/XXXXXX')
+                                            ->helperText(__('admin.instapay_link_hint')),
+
+                                        Forms\Components\Textarea::make('instapay_details_ar')
+                                            ->label(__('admin.instapay_details_ar'))
+                                            ->rows(3),
+
+                                        Forms\Components\Textarea::make('instapay_details_en')
+                                            ->label(__('admin.instapay_details_en'))
+                                            ->rows(3),
                                     ])
                                     ->columns(2),
 

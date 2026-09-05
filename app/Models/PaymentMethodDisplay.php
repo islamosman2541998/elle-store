@@ -38,6 +38,7 @@ class PaymentMethodDisplay extends Model
             'cash_on_delivery' => 'Cash On Delivery',
             'bank_transfer' => 'Bank Transfer',
             'wallet_transfer' => 'Wallet Transfer',
+            'instapay' => 'InstaPay',
             'visa' => 'Visa',
             'mastercard' => 'Mastercard',
             'meeza' => 'Meeza',

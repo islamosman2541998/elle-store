@@ -49,7 +49,13 @@ class AppServiceProvider extends ServiceProvider
         // in their own scope, so without it $storeSettings was undefined there
         // and the currency silently fell back to "EGP" instead of "ج.م".
         View::composer(['site.*', 'livewire.site.*'], function ($view) {
-            $view->with($this->app->make(StorefrontChromeService::class)->viewData());
+            // Only fill in what the view was not already given. The composer
+            // used to overwrite it, and its "paymentMethods" (the footer's
+            // payment icons) silently replaced the checkout's list of methods
+            // the shopper can actually pick.
+            $chrome = $this->app->make(StorefrontChromeService::class)->viewData();
+
+            $view->with(array_diff_key($chrome, $view->getData()));
         });
 
         // If any of that data is edited mid-request (the admin panel saves and

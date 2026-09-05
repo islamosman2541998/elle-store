@@ -900,7 +900,7 @@ private function createCheckoutAddress(Customer $customer): CustomerAddress
             ->get()
             ->keyBy('key');
 
-        return collect($enabledMethods)
+        $built = collect($enabledMethods)
             ->map(function ($label, $key) use ($displayMethods) {
                 $display = $displayMethods->get($key);
 
@@ -912,6 +912,8 @@ private function createCheckoutAddress(Customer $customer): CustomerAddress
                 ];
             })
             ->values();
+
+        return $built;
     }
 
     public function shippingCities(): Collection
@@ -940,6 +942,18 @@ private function createCheckoutAddress(Customer $customer): CustomerAddress
                     : $settings->bank_account_details_en,
                 'instructions' => $paymentInstructions,
                 'requires_proof' => $this->paymentRequiresProof(),
+            ],
+
+            'instapay' => [
+                'title' => $locale === 'ar' ? 'الدفع عبر إنستاباي' : 'Pay with InstaPay',
+                'details' => $locale === 'ar'
+                    ? $settings->instapay_details_ar
+                    : $settings->instapay_details_en,
+                'instructions' => $paymentInstructions,
+                'requires_proof' => $this->paymentRequiresProof(),
+                // The link opens the InstaPay app straight on a phone.
+                'instapay_link' => $settings->instapay_link,
+                'instapay_handle' => $settings->instapay_handle,
             ],
 
             'wallet_transfer' => [

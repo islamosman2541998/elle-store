@@ -272,12 +272,58 @@
                                 </label>
                             @endforeach
                         </div>
-                        @if (!empty($paymentDetails['title']) || !empty($paymentDetails['details']) || !empty($paymentDetails['instructions']))
+                        @if (!empty($paymentDetails['title']) || !empty($paymentDetails['details']) || !empty($paymentDetails['instructions']) || !empty($paymentDetails['instapay_link']))
                             <div class="checkout-payment-details">
                                 @if (!empty($paymentDetails['title']))
                                     <h3>
                                         {{ $paymentDetails['title'] }}
                                     </h3>
+                                @endif
+
+                                {{-- On a phone this hands over to the InstaPay app itself. --}}
+                                @if (!empty($paymentDetails['instapay_link']))
+                                    <div class="instapay-panel">
+                                        @if (!empty($paymentDetails['instapay_handle']))
+                                            <div class="instapay-handle" x-data="{ copied: false }">
+                                                <span class="instapay-handle-label">
+                                                    {{ app()->getLocale() === 'ar' ? 'الحساب' : 'Account' }}
+                                                </span>
+
+                                                <code dir="ltr">{{ $paymentDetails['instapay_handle'] }}</code>
+
+                                                <button
+                                                    type="button"
+                                                    class="instapay-copy"
+                                                    x-on:click="navigator.clipboard?.writeText(@js($paymentDetails['instapay_handle'])); copied = true; setTimeout(() => copied = false, 1500)"
+                                                >
+                                                    <span x-show="!copied">{{ app()->getLocale() === 'ar' ? 'نسخ' : 'Copy' }}</span>
+                                                    <span x-show="copied" x-cloak>{{ app()->getLocale() === 'ar' ? 'تم النسخ' : 'Copied' }}</span>
+                                                </button>
+                                            </div>
+                                        @endif
+
+                                        <a
+                                            href="{{ $paymentDetails['instapay_link'] }}"
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            class="instapay-button"
+                                        >
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                                <rect x="2" y="5" width="20" height="14" rx="2"></rect>
+                                                <path d="M2 10h20"></path>
+                                            </svg>
+
+                                            <span>
+                                                {{ app()->getLocale() === 'ar' ? 'ادفع الآن عبر إنستاباي' : 'Pay now with InstaPay' }}
+                                            </span>
+                                        </a>
+
+                                        <p class="instapay-note">
+                                            {{ app()->getLocale() === 'ar'
+                                                ? 'بعد إتمام التحويل، ارفعي صورة الإيصال بالأسفل لتأكيد الطلب.'
+                                                : 'After transferring, upload the receipt below to confirm your order.' }}
+                                        </p>
+                                    </div>
                                 @endif
 
                                 @if (!empty($paymentDetails['details']))

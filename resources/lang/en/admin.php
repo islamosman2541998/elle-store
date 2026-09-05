@@ -212,7 +212,8 @@ return [
 'cancelled_at' => 'Cancelled At',
 'order_overview' => 'Order Overview',
 
-'order_pending' => 'Pending',
+'order_pending' => 'Pending',
+
     'order_created' => 'Order created',
 'order_confirmed' => 'Confirmed',
 'order_processing' => 'Processing',
@@ -1223,4 +1224,74 @@ return [
     'whatsapp_send_logo' => 'Send the logo with WhatsApp messages',
 
     'whatsapp_send_logo_hint' => 'The message is sent as an image with the text below it. The site must be live on a real domain so the provider can download the image.',
+
+    'payment_instapay' => 'InstaPay',
+
+    'instapay_enabled' => 'Enable InstaPay',
+
+    'instapay_enabled_hint' => 'A payment receipt is always required with InstaPay.',
+
+    'instapay_details' => 'InstaPay details',
+
+    'instapay_details_hint' => 'The customer sees the account and a button that opens the InstaPay app.',
+
+    'instapay_handle' => 'InstaPay account',
+
+    'instapay_handle_hint' => 'For example: osama3lwany@instapay',
+
+    'instapay_link' => 'Payment link',
+
+    'instapay_link_hint' => 'The link InstaPay gives you; it opens the app directly.',
+
+    'instapay_details_ar' => 'InstaPay instructions (Arabic)',
+
+    'instapay_details_en' => 'InstaPay instructions (English)',
+
+    'storefront_widgets' => 'Storefront widgets',
+
+    'coupon_popup' => 'Coupon popup',
+
+    'coupon_popup_hint' => 'Shown when a visitor opens the site, and not again until the period you choose has passed.',
+
+    'coupon_popup_enabled' => 'Enable the coupon popup',
+
+    'coupon_popup_title_ar' => 'Title (Arabic)',
+
+    'coupon_popup_title_en' => 'Title (English)',
+
+    'coupon_popup_text_ar' => 'Text (Arabic)',
+
+    'coupon_popup_text_en' => 'Text (English)',
+
+    'coupon_popup_code' => 'Coupon code',
+
+    'coupon_popup_code_hint' => 'One tap copies it. It must be a real coupon from the Coupons page to actually work.',
+
+    'coupon_popup_image' => 'Popup image',
+
+    'coupon_popup_button_label_ar' => 'Button label (Arabic)',
+
+    'coupon_popup_button_label_en' => 'Button label (English)',
+
+    'coupon_popup_delay' => 'Show after',
+
+    'coupon_popup_delay_hint' => 'How many seconds after the page opens.',
+
+    'coupon_popup_remember_days' => 'Do not show again for',
+
+    'coupon_popup_remember_days_hint' => 'After the visitor closes it. Zero means every visit.',
+
+    'whatsapp_button' => 'Floating WhatsApp button',
+
+    'whatsapp_button_hint' => 'Pinned to the bottom of every page, on the side that matches the site language. It uses the WhatsApp number from your contact details.',
+
+    'whatsapp_button_enabled' => 'Enable the WhatsApp button',
+
+    'whatsapp_button_message_ar' => 'Prefilled message (Arabic)',
+
+    'whatsapp_button_message_en' => 'Prefilled message (English)',
+
+    'whatsapp_button_message_hint' => 'Typed into the chat box for the customer. Leave empty for none.',
+
+    'payment_method_instapay' => 'InstaPay',
 ];

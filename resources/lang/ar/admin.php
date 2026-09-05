@@ -216,7 +216,8 @@ return [
 'cancelled_at' => 'تاريخ الإلغاء',
 'order_overview' => 'نظرة عامة على الطلب',
 
-'order_pending' => 'قيد الانتظار',
+'order_pending' => 'قيد الانتظار',
+
     'order_created' => 'تم إنشاء الطلب',
 'order_confirmed' => 'تم التأكيد',
 'order_processing' => 'قيد التجهيز',
@@ -1224,4 +1225,74 @@ return [
     'whatsapp_send_logo' => 'إرسال الشعار مع رسائل الواتساب',
 
     'whatsapp_send_logo_hint' => 'الرسالة هتتبعت كصورة والنص تحتها. لازم الموقع يكون منشور على دومين حقيقي عشان مزود الواتساب يقدر يحمّل الصورة.',
+
+    'payment_instapay' => 'إنستاباي',
+
+    'instapay_enabled' => 'تفعيل إنستاباي',
+
+    'instapay_enabled_hint' => 'إيصال الدفع مطلوب دائمًا مع إنستاباي.',
+
+    'instapay_details' => 'بيانات إنستاباي',
+
+    'instapay_details_hint' => 'العميلة هتشوف الحساب وزر يفتحلها تطبيق إنستاباي على طول.',
+
+    'instapay_handle' => 'حساب إنستاباي',
+
+    'instapay_handle_hint' => 'زي: osama3lwany@instapay',
+
+    'instapay_link' => 'رابط الدفع',
+
+    'instapay_link_hint' => 'الرابط اللي بيجيلك من إنستاباي وبيفتح التطبيق مباشرة.',
+
+    'instapay_details_ar' => 'تعليمات إنستاباي (عربي)',
+
+    'instapay_details_en' => 'تعليمات إنستاباي (إنجليزي)',
+
+    'storefront_widgets' => 'عناصر الموقع',
+
+    'coupon_popup' => 'نافذة الكوبون',
+
+    'coupon_popup_hint' => 'بتظهر للعميلة أول ما تفتح الموقع، ومبتظهرش تاني قبل المدة اللي تحدديها.',
+
+    'coupon_popup_enabled' => 'تفعيل نافذة الكوبون',
+
+    'coupon_popup_title_ar' => 'العنوان (عربي)',
+
+    'coupon_popup_title_en' => 'العنوان (إنجليزي)',
+
+    'coupon_popup_text_ar' => 'النص (عربي)',
+
+    'coupon_popup_text_en' => 'النص (إنجليزي)',
+
+    'coupon_popup_code' => 'كود الكوبون',
+
+    'coupon_popup_code_hint' => 'العميلة تقدر تنسخه بضغطة. لازم يكون كوبون موجود فعلًا في صفحة الكوبونات عشان يشتغل.',
+
+    'coupon_popup_image' => 'صورة النافذة',
+
+    'coupon_popup_button_label_ar' => 'نص الزر (عربي)',
+
+    'coupon_popup_button_label_en' => 'نص الزر (إنجليزي)',
+
+    'coupon_popup_delay' => 'تظهر بعد',
+
+    'coupon_popup_delay_hint' => 'كام ثانية من فتح الصفحة قبل ما تظهر.',
+
+    'coupon_popup_remember_days' => 'متظهرش تاني لمدة',
+
+    'coupon_popup_remember_days_hint' => 'بعد ما تقفلها العميلة. صفر يعني تظهر كل مرة.',
+
+    'whatsapp_button' => 'زر الواتساب العائم',
+
+    'whatsapp_button_hint' => 'بيظهر ثابت أسفل الصفحة، وناحيته بتتغير حسب لغة الموقع. بيستخدم رقم الواتساب من بيانات التواصل.',
+
+    'whatsapp_button_enabled' => 'تفعيل زر الواتساب',
+
+    'whatsapp_button_message_ar' => 'رسالة جاهزة (عربي)',
+
+    'whatsapp_button_message_en' => 'رسالة جاهزة (إنجليزي)',
+
+    'whatsapp_button_message_hint' => 'بتتكتب للعميلة تلقائيًا في خانة الرسالة. سيبيها فاضية لو مش عايزة.',
+
+    'payment_method_instapay' => 'إنستاباي',
 ];

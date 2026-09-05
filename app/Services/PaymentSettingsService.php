@@ -24,6 +24,10 @@ class PaymentSettingsService
             $methods['wallet_transfer'] = __('admin.payment_wallet_transfer');
         }
 
+        if ($settings->instapay_enabled) {
+            $methods['instapay'] = __('admin.payment_instapay');
+        }
+
         return $methods;
     }
 
@@ -43,9 +47,14 @@ class PaymentSettingsService
 
     public function requiresPaymentProof(?string $method): bool
     {
-        $settings = StoreSetting::current();
+        // InstaPay is paid before the order is placed and leaves no other
+        // trace for the shop, so the receipt is always required - the global
+        // switch does not turn it off.
+        if ($method === 'instapay') {
+            return true;
+        }
 
-        if (! $settings->payment_proof_required) {
+        if (! StoreSetting::current()->payment_proof_required) {
             return false;
         }
 

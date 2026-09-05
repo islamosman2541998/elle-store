@@ -41,6 +41,9 @@
     {{-- Single shared quick-view dialog, opened by product cards. --}}
     @livewire('site.product-quick-view')
 
+    @include('site.partials.whatsapp-button')
+    @include('site.partials.coupon-popup')
+
     @include('site.partials.scripts')
 </body>
 </html>
