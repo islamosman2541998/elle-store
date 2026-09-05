@@ -1,0 +1,120 @@
+@config "../../tailwind.site.config.js";
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+    :root {
+        --site-brand: #d97706;
+        --site-brand-dark: #b45309;
+        --site-dark: #111827;
+        --site-muted: #6b7280;
+        --site-soft: #f9fafb;
+    }
+
+    html {
+        scroll-behavior: smooth;
+    }
+
+    body {
+        background: var(--site-soft);
+        color: var(--site-dark);
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+    }
+
+    html[dir="rtl"] body {
+        font-family: "Cairo", sans-serif;
+    }
+
+    html[dir="ltr"] body {
+        font-family: "Inter", sans-serif;
+    }
+
+    a {
+        transition: 0.2s ease;
+    }
+
+    [x-cloak] {
+        display: none !important;
+    }
+}
+
+@layer components {
+    .site-container {
+        @apply mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8;
+    }
+
+    .site-section {
+        @apply py-16 lg:py-20;
+    }
+
+    .site-section-title {
+        @apply text-2xl font-extrabold md:text-3xl;
+        color: var(--site-dark);
+    }
+
+    .site-section-subtitle {
+        @apply mt-3 text-sm leading-7 md:text-base;
+        color: var(--site-muted);
+    }
+
+    .site-btn {
+        @apply inline-flex items-center justify-center rounded-full px-6 py-3 text-sm font-bold transition;
+    }
+
+    .site-btn-primary {
+        background: var(--site-brand);
+        color: #fff;
+    }
+
+    .site-btn-primary:hover {
+        background: var(--site-brand-dark);
+        color: #fff;
+    }
+
+    .site-card {
+        @apply rounded-2xl border border-gray-100 bg-white shadow-sm;
+    }
+
+    .announcement-track {
+        display: flex;
+        width: max-content;
+        min-width: 100%;
+        align-items: center;
+        gap: 3rem;
+        white-space: nowrap;
+        padding-inline: 1.5rem;
+        font-size: 0.875rem;
+        font-weight: 800;
+        line-height: 2.5rem;
+        animation-name: announcement-marquee-ltr;
+        animation-timing-function: linear;
+        animation-iteration-count: infinite;
+    }
+
+    html[dir="rtl"] .announcement-track {
+        animation-name: announcement-marquee-rtl;
+    }
+}
+
+@keyframes announcement-marquee-ltr {
+    from {
+        transform: translateX(100%);
+    }
+
+    to {
+        transform: translateX(-100%);
+    }
+}
+
+@keyframes announcement-marquee-rtl {
+    from {
+        transform: translateX(-100%);
+    }
+
+    to {
+        transform: translateX(100%);
+    }
+}

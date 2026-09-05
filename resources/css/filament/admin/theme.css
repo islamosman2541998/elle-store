@@ -1,0 +1,57 @@
+@import '../../../../vendor/filament/filament/resources/css/theme.css';
+
+@config 'tailwind.config.js';
+html[lang="ar"] {
+    direction: rtl;
+}
+
+html[lang="ar"] body {
+    direction: rtl;
+    text-align: right;
+}
+
+html[lang="ar"] .fi-sidebar,
+html[lang="ar"] .fi-main,
+html[lang="ar"] .fi-topbar,
+html[lang="ar"] .fi-page {
+    direction: rtl;
+}
+
+html[lang="ar"] input,
+html[lang="ar"] textarea,
+html[lang="ar"] select {
+    text-align: right;
+}
+
+html[lang="en"] {
+    direction: ltr;
+}
+
+html[lang="en"] body {
+    direction: ltr;
+    text-align: left;
+}
+
+html[dir="rtl"] {
+    direction: rtl;
+}
+
+html[dir="rtl"] body {
+    direction: rtl;
+    text-align: right;
+}
+
+html[dir="rtl"] input,
+html[dir="rtl"] textarea,
+html[dir="rtl"] select {
+    text-align: right;
+}
+
+html[dir="ltr"] {
+    direction: ltr;
+}
+
+html[dir="ltr"] body {
+    direction: ltr;
+    text-align: left;
+}
