@@ -82,6 +82,29 @@ $onPrimary = $primaryIsDark ? '#ffffff' : '#111827';
 $onDarkPrimary = $primaryIsDark ? '#111827' : '#ffffff';
 
 $loginCardRgb = $hexToRgb($loginCardBackgroundColor);
+
+/*
+ * The login card in dark mode.
+ *
+ * The shop picks a card colour for the light theme; painting that same light
+ * colour in dark mode left white text on a white card - the whole form was
+ * unreadable. Rather than add a second colour picker, darken the chosen one:
+ * a light choice becomes a deep neutral panel, and a shop that already picked
+ * something dark keeps it.
+ */
+$mixWithBlack = function (?string $hex, float $amount) use ($hexToRgb): string {
+    [$r, $g, $b] = array_map('intval', explode(', ', $hexToRgb($hex, '255, 255, 255')));
+
+    $drop = fn (int $c): int => (int) round($c * (1 - $amount));
+
+    return sprintf('#%02x%02x%02x', $drop($r), $drop($g), $drop($b));
+};
+
+$loginCardIsLight = $relativeLuminance($loginCardBackgroundColor) > 0.35;
+
+$loginCardDarkRgb = $loginCardIsLight
+    ? '24, 24, 27'
+    : $hexToRgb($mixWithBlack($loginCardBackgroundColor, 0.25));
 $loginLogo = $settings->dashboard_logo
     ? asset('storage/' . $settings->dashboard_logo)
     : '';
@@ -277,6 +300,15 @@ $loginLogoHeight = (int) ($settings->login_logo_height ?: 96);
     z-index: -1;
 }
 
+/* In dark mode the wash darkens the page instead of bleaching it. */
+html.dark .fi-simple-layout::after {
+    background: rgba(9, 9, 11, 0.55);
+}
+
+html.dark .fi-simple-layout {
+    background-color: #09090b !important;
+}
+
 .fi-simple-main {
     background: rgba({{ $loginCardRgb }}, {{ $loginCardOpacity }}) !important;
     border-radius: 24px !important;
@@ -288,6 +320,99 @@ $loginLogoHeight = (int) ($settings->login_logo_height ?: 96);
     height: auto !important;
     {{ $loginCardBlur ? 'backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);' : '' }}
     
+}
+
+/*
+ * Dark mode.
+ *
+ * The card colour is a light-theme choice, so in dark mode it is replaced by a
+ * dark panel. Without this the card stayed white while Filament switched every
+ * label, heading and input to white text - the form was there but unreadable.
+ */
+html.dark .fi-simple-main {
+    background: rgba({{ $loginCardDarkRgb }}, {{ $loginCardOpacity }}) !important;
+    border-color: rgba(255, 255, 255, 0.08) !important;
+    box-shadow: 0 24px 70px rgba(0, 0, 0, 0.55) !important;
+}
+
+/* Headings and helper text on the dark card. */
+html.dark .fi-simple-main h1,
+html.dark .fi-simple-main .fi-simple-header-heading {
+    color: #f4f4f5 !important;
+}
+
+html.dark .fi-simple-main .fi-simple-header-subheading,
+html.dark .fi-simple-main .fi-fo-field-wrp-hint,
+html.dark .fi-simple-main .fi-fo-field-wrp-helper-text {
+    color: #a1a1aa !important;
+}
+
+html.dark .fi-simple-main .fi-fo-field-wrp-label,
+html.dark .fi-simple-main label {
+    color: #e4e4e7 !important;
+}
+
+/* Inputs: a slightly lifted surface so the field edges are visible. */
+html.dark .fi-simple-main .fi-input-wrp {
+    background-color: rgba(255, 255, 255, 0.04) !important;
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.10) !important;
+}
+
+/* Focus ring uses the panel accent, the same colour the light theme shows. */
+html.dark .fi-simple-main .fi-input-wrp:focus-within {
+    box-shadow: 0 0 0 2px rgb(var(--primary-500)) !important;
+}
+
+html.dark .fi-simple-main .fi-input {
+    color: #fafafa !important;
+}
+
+html.dark .fi-simple-main .fi-input::placeholder {
+    color: #71717a !important;
+}
+
+html.dark .fi-simple-main .fi-icon-btn,
+html.dark .fi-simple-main .fi-input-wrp-suffix svg,
+html.dark .fi-simple-main .fi-input-wrp-prefix svg {
+    color: #a1a1aa !important;
+}
+
+/* Links (forgot password). */
+html.dark .fi-simple-main a {
+    color: var(--dashboard-primary-active) !important;
+}
+
+/*
+ * The theme switcher on the login page.
+ *
+ * The login screen has no topbar and no user menu, so it was the only place
+ * with no way to switch theme. It floats at the top of the page, outside the
+ * card, in a pill of its own.
+ */
+.fi-login-theme-switcher {
+    position: fixed;
+    top: 18px;
+    inset-inline-end: 20px;
+    z-index: 50;
+    padding: 4px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.78);
+    box-shadow: 0 6px 20px rgba(15, 23, 42, 0.12);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+}
+
+html.dark .fi-login-theme-switcher {
+    background: rgba(255, 255, 255, 0.07);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+}
+
+html.dark .fi-login-theme-switcher .fi-icon-btn {
+    color: #a1a1aa !important;
+}
+
+html.dark .fi-login-theme-switcher .fi-icon-btn:hover {
+    color: #fafafa !important;
 }
 
 .fi-simple-main .fi-logo {

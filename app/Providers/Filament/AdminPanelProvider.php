@@ -114,6 +114,16 @@ class AdminPanelProvider extends PanelProvider
 
                 return $favicon ? asset('storage/' . $favicon) : null;
             })
+            // The login page is the one screen with no topbar and no user
+            // menu, so it had no way to switch theme at all. Scoped to the
+            // login page: every other screen already has the switcher.
+            ->renderHook(
+                PanelsRenderHook::BODY_START,
+                fn () => Blade::render(
+                    '<div class="fi-login-theme-switcher"><x-filament-panels::theme-switcher /></div>'
+                ),
+                scopes: \Filament\Pages\Auth\Login::class,
+            )
             ->renderHook(
                 PanelsRenderHook::HEAD_END,
                 fn() => '
