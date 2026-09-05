@@ -345,3 +345,8 @@
         )
     </div>
 </section>
+
+@include('site.partials.tracking-event', [
+    'event' => 'ViewContent',
+    'payload' => app(\App\Services\TrackingEventService::class)->productPayload($product, $priceData),
+])

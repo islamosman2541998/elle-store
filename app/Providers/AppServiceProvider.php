@@ -32,6 +32,9 @@ class AppServiceProvider extends ServiceProvider
 
     public function register(): void
     {
+        // One instance per request: pages describe themselves, the head reads it.
+        $this->app->singleton(\App\Services\SeoService::class);
+
         $this->app->singleton(StorefrontChromeService::class);
         $this->app->singleton(WishlistStateService::class);
         $this->app->singleton(MailConfigurator::class);

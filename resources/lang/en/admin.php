@@ -1209,4 +1209,18 @@ return [
     'edit_message_templates' => 'Edit message templates',
 
     'message_templates_moved' => 'The wording of every message, email and WhatsApp, now lives in "Message templates".',
+
+    'whatsapp_cloud_api_warning' => 'Note: Meta only allows free-form text within 24 hours of the customer messaging you. Outside that window it requires templates pre-approved by Meta. UltraMsg and Twilio have no such restriction.',
+
+    'message_branding' => 'Message branding',
+
+    'message_branding_hint' => 'This image appears at the top of every email the store sends, and can ride along with WhatsApp messages too.',
+
+    'notification_logo' => 'Messages logo',
+
+    'notification_logo_hint' => 'Leave empty to use the storefront logo. A transparent PNG around 400px wide works best.',
+
+    'whatsapp_send_logo' => 'Send the logo with WhatsApp messages',
+
+    'whatsapp_send_logo_hint' => 'The message is sent as an image with the text below it. The site must be live on a real domain so the provider can download the image.',
 ];

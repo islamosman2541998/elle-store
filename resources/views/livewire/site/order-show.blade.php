@@ -327,3 +327,11 @@
         @endif
     </div>
 </section>
+
+@if (!empty($purchaseTracking))
+    @include('site.partials.tracking-event', [
+        'event' => 'Purchase',
+        'payload' => $purchaseTracking['payload'],
+        'eventId' => $purchaseTracking['eventId'],
+    ])
+@endif

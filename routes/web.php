@@ -5,12 +5,17 @@ use App\Http\Controllers\Site\HomeController;
 use App\Http\Controllers\Site\PageController;
 use App\Http\Controllers\Site\ProductController;
 use App\Http\Controllers\Site\ShopController;
+use App\Http\Controllers\Site\SitemapController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Site\OrderController;
 
 
 
 Route::get('/', [HomeController::class, 'index'])->name('site.home');
+
+// Generated, not stored: a product added in the dashboard appears at once.
+Route::get('/sitemap.xml', [SitemapController::class, 'sitemap'])->name('site.sitemap');
+Route::get('/robots.txt', [SitemapController::class, 'robots'])->name('site.robots');
 Route::get('/pages/{slug}', [PageController::class, 'show'])
     ->name('site.pages.show');
 Route::middleware(['web', 'auth'])->prefix('admin')->name('admin.')->group(function () {

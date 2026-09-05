@@ -1,6 +1,5 @@
 @extends('site.layouts.app')
 @section('transparent_header', true)
-@section('title', $storeSettings->store_name)
 
 @section('content')
     @include('site.partials.home.hero-slider')

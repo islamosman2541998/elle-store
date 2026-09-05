@@ -4,9 +4,9 @@
     $storeName = $storeSettings->store_name
         ?: config('app.name');
 
-    $logoUrl = $storeSettings->logo
-        ? asset('storage/' . $storeSettings->logo)
-        : null;
+    // The messages logo, chosen in the dashboard; falls back to the
+    // storefront logo when the shop has not picked a separate one.
+    $logoUrl = $storeSettings->notificationLogoUrl();
 @endphp
 
 <!DOCTYPE html>

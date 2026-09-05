@@ -540,6 +540,17 @@ class ProductShow extends Component
 
         $relatedProducts = $this->relatedProducts($product);
 
+        // Title, description, share image and Product structured data.
+        $arabic = app()->getLocale() === 'ar';
+
+        app(\App\Services\SeoService::class)
+            ->forProduct($product, $priceData)
+            ->breadcrumbs(array_values(array_filter([
+                ['name' => $arabic ? 'الرئيسية' : 'Home', 'url' => route('site.home')],
+                ['name' => $arabic ? 'المتجر' : 'Shop', 'url' => route('site.shop')],
+                ['name' => $translation?->name ?: ('#' . $product->id), 'url' => url()->current()],
+            ])));
+
         return view('livewire.site.product-show', [
             'product' => $product,
             'translation' => $translation,

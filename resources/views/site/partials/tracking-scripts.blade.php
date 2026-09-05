@@ -6,6 +6,30 @@
 
 @if ($settings->tracking_enabled)
 
+    {{-- One place that knows how to speak to every pixel that is switched on.
+         Page-level events call it directly; Livewire components reach it by
+         dispatching a browser "track-event". --}}
+    <script>
+        window.elleTrack = function (name, payload, eventId) {
+            payload = payload || {};
+            eventId = eventId || (name + '_' + Date.now() + '_' + Math.random().toString(16).slice(2));
+
+            window.dataLayer = window.dataLayer || [];
+            window.dataLayer.push({ event: name, event_id: eventId, ecommerce: payload });
+
+            if (typeof fbq === 'function') { fbq('track', name, payload, { eventID: eventId }); }
+            if (typeof ttq !== 'undefined' && ttq.track) { ttq.track(name, payload); }
+            if (typeof snaptr === 'function') { snaptr('track', name.replace(/([a-z])([A-Z])/g, '$1_$2').toUpperCase(), payload); }
+            if (typeof twq === 'function') { twq('event', name, payload); }
+            if (typeof pintrk === 'function') { pintrk('track', name, payload); }
+        };
+
+        window.addEventListener('track-event', function (e) {
+            var d = (e.detail && e.detail[0]) ? e.detail[0] : (e.detail || {});
+            if (d.name) { window.elleTrack(d.name, d.payload, d.eventId); }
+        });
+    </script>
+
     {{-- Google Tag Manager --}}
     @if ($settings->google_tag_manager_id)
         <script>
@@ -140,6 +164,21 @@
                 b.src = "https://snap.licdn.com/li.lms-analytics/insight.min.js";
                 s.parentNode.insertBefore(b, s);
             })(window.lintrk);
+        </script>
+    @endif
+
+    {{-- X (Twitter) Pixel --}}
+    @if ($settings->twitter_pixel_id)
+        <script>
+            !function(e,t,n,s,u,a){
+                e.twq||(s=e.twq=function(){
+                    s.exe?s.exe.apply(s,arguments):s.queue.push(arguments);
+                },s.version='1.1',s.queue=[],u=t.createElement(n),u.async=!0,
+                u.src='https://static.ads-twitter.com/uwt.js',
+                a=t.getElementsByTagName(n)[0],a.parentNode.insertBefore(u,a))
+            }(window,document,'script');
+
+            twq('config','{{ $settings->twitter_pixel_id }}');
         </script>
     @endif
 

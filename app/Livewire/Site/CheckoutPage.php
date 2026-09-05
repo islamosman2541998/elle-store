@@ -372,6 +372,10 @@ $city = ShippingCity::query()->find($this->shipping_city_id);
                 }
             }
 
+            // Flashed, so the order page reports the sale once and a later
+            // visit to the same link does not count a second purchase.
+            session()->flash('track_purchase_order', $this->orderNumber);
+
             $this->redirectRoute('site.orders.show', [
                 'orderNumber' => $this->orderNumber,
             ]);

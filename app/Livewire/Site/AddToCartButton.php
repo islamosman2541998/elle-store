@@ -97,6 +97,23 @@ class AddToCartButton extends Component
         $this->dispatch('cart-updated');
         $this->dispatch('cart-updated')->to(CartCounter::class);
 
+        // AddToCart is what the ad platforms optimise against, so it is
+        // reported the moment the item really lands in the cart.
+        $tracking = app(\App\Services\TrackingEventService::class);
+
+        if ($tracking->isEnabled()) {
+            $product = \App\Models\Product::find($this->productId);
+
+            if ($product) {
+                $this->dispatch(
+                    'track-event',
+                    name: 'AddToCart',
+                    payload: $tracking->productPayload($product, null, $this->quantity),
+                    eventId: $tracking->eventId('addtocart'),
+                );
+            }
+        }
+
         $this->toast(
             'success',
             '✓',

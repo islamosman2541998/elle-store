@@ -14,7 +14,9 @@ use App\Services\Notifications\NotificationDispatcher;
 use App\Services\Notifications\WhatsappGateway;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\URL;
 use Tests\TestCase;
 
 /**
@@ -302,6 +304,197 @@ class NotificationChannelsTest extends TestCase
                 fn ($request) => str_contains($request->url(), $host),
                 "provider {$provider} should post to {$host}"
             );
+        }
+    }
+
+    // ------------------------------------------------------- what got logged
+
+    /**
+     * "No email arrived" used to be unanswerable: a message that was never
+     * triggered looked exactly like one lost in transit. Both outcomes are
+     * now recorded.
+     */
+    public function test_a_skipped_email_records_why(): void
+    {
+        Mail::fake();
+        Http::fake();
+        $this->settings(['notify_admin_new_order' => false]);
+
+        Log::shouldReceive('info')
+            ->atLeast()->once()
+            ->with('Email notification skipped', \Mockery::on(
+                fn (array $context) => $context['event'] === 'admin_new_order'
+                    && $context['reason'] === 'this event is off'
+            ));
+
+        Log::shouldReceive('info')->zeroOrMoreTimes();
+        Log::shouldReceive('warning')->zeroOrMoreTimes();
+
+        app(NotificationDispatcher::class)->adminNewOrder($this->order());
+
+        Mail::assertNothingSent();
+    }
+
+    public function test_a_sent_email_records_where_it_went(): void
+    {
+        Mail::fake();
+        Http::fake();
+        $this->settings();
+
+        Log::shouldReceive('info')
+            ->atLeast()->once()
+            ->with('Email notification accepted by the mail server', \Mockery::on(
+                fn (array $context) => $context['event'] === 'customer_new_order'
+                    && $context['to'] === 'buyer@example.com'
+            ));
+
+        Log::shouldReceive('info')->zeroOrMoreTimes();
+        Log::shouldReceive('warning')->zeroOrMoreTimes();
+
+        app(NotificationDispatcher::class)->customerNewOrder($this->order());
+    }
+
+    /**
+     * UltraMsg answers a refused message with HTTP 200 and {"error": "..."},
+     * so the status code alone would record it as delivered.
+     */
+    public function test_a_refusal_returned_with_http_200_counts_as_a_failure(): void
+    {
+        $this->settings(['whatsapp_api_provider' => 'ultramsg', 'whatsapp_sender_id' => 'instance1']);
+
+        Http::fake(['*' => Http::response(['error' => 'Instance not found'], 200)]);
+
+        $result = app(WhatsappGateway::class)->send('01099887766', 'hi', 'test');
+
+        $this->assertFalse($result['ok']);
+        $this->assertStringContainsString('Instance not found', (string) $result['error']);
+    }
+
+    public function test_a_real_ultramsg_success_is_still_a_success(): void
+    {
+        $this->settings(['whatsapp_api_provider' => 'ultramsg', 'whatsapp_sender_id' => 'instance1']);
+
+        Http::fake(['*' => Http::response(['sent' => 'true', 'id' => 12], 200)]);
+
+        $this->assertTrue(app(WhatsappGateway::class)->send('01099887766', 'hi', 'test')['ok']);
+    }
+
+    // -------------------------------------------------------- the brand logo
+
+    public function test_the_messages_logo_falls_back_to_the_storefront_logo(): void
+    {
+        $settings = $this->settings(['notification_logo' => null, 'logo' => 'settings/shop.png']);
+
+        $this->assertSame('settings/shop.png', $settings->notificationLogoPath());
+        $this->assertStringContainsString('settings/shop.png', (string) $settings->notificationLogoUrl());
+    }
+
+    public function test_a_dedicated_messages_logo_wins(): void
+    {
+        $settings = $this->settings([
+            'logo' => 'settings/shop.png',
+            'notification_logo' => 'settings/notifications/brand.png',
+        ]);
+
+        $this->assertSame('settings/notifications/brand.png', $settings->notificationLogoPath());
+    }
+
+    public function test_the_email_carries_the_messages_logo(): void
+    {
+        Mail::fake();
+        Http::fake();
+        $this->settings(['notification_logo' => 'settings/notifications/brand.png']);
+
+        app(NotificationDispatcher::class)->customerNewOrder($this->order());
+
+        Mail::assertSent(StoreNotificationMail::class, function (StoreNotificationMail $mail) {
+            return str_contains($mail->render(), 'settings/notifications/brand.png');
+        });
+    }
+
+    public function test_whatsapp_sends_plain_text_while_the_logo_is_switched_off(): void
+    {
+        Mail::fake();
+        $this->fakeWhatsappOk();
+        $this->settings([
+            'whatsapp_send_logo' => false,
+            'notification_logo' => 'settings/notifications/brand.png',
+        ]);
+
+        app(NotificationDispatcher::class)->customerNewOrder($this->order());
+
+        Http::assertSent(fn ($request) => ($request['type'] ?? null) === 'text');
+    }
+
+    /**
+     * The provider downloads the image itself, so a URL that only resolves on
+     * the developer's machine is left off rather than sent and rejected.
+     */
+    public function test_an_unreachable_logo_url_is_not_attached(): void
+    {
+        Mail::fake();
+        $this->fakeWhatsappOk();
+        URL::forceRootUrl('http://elle-store.test');
+        $this->settings([
+            'whatsapp_send_logo' => true,
+            'notification_logo' => 'settings/notifications/brand.png',
+        ]);
+
+        app(NotificationDispatcher::class)->customerNewOrder($this->order());
+
+        Http::assertSent(fn ($request) => ($request['type'] ?? null) === 'text');
+    }
+
+    public function test_a_public_logo_is_attached_as_an_image_with_the_text_as_caption(): void
+    {
+        Mail::fake();
+        $this->fakeWhatsappOk();
+        URL::forceRootUrl('https://elle.example.com');
+        $this->settings([
+            'whatsapp_send_logo' => true,
+            'notification_logo' => 'settings/notifications/brand.png',
+        ]);
+
+        app(NotificationDispatcher::class)->customerNewOrder($this->order());
+
+        Http::assertSent(function ($request) {
+            return ($request['type'] ?? null) === 'image'
+                && str_contains($request['image']['link'] ?? '', 'brand.png')
+                && filled($request['image']['caption'] ?? null);
+        });
+    }
+
+    public function test_each_provider_attaches_the_image_its_own_way(): void
+    {
+        URL::forceRootUrl('https://elle.example.com');
+
+        $expectations = [
+            'ultramsg' => fn ($request) => str_contains($request->url(), '/messages/image')
+                && str_contains($request['image'] ?? '', 'brand.png'),
+            'twilio' => fn ($request) => str_contains($request['MediaUrl'] ?? '', 'brand.png'),
+        ];
+
+        foreach ($expectations as $provider => $matches) {
+            Http::fake(['*' => Http::response(['sent' => 'true', 'sid' => 'SM1'], 200)]);
+
+            $this->settings([
+                'whatsapp_api_provider' => $provider,
+                'whatsapp_api_token' => 'token',
+                'whatsapp_sender_id' => $provider === 'twilio' ? 'AC1' : 'instance1',
+                'whatsapp_api_secret' => 'secret',
+                'whatsapp_from_number' => '+14155238886',
+                'whatsapp_send_logo' => true,
+                'notification_logo' => 'settings/notifications/brand.png',
+            ]);
+
+            app(WhatsappGateway::class)->send(
+                '01099887766',
+                'hello',
+                'test',
+                StoreSetting::current()->notificationLogoUrl()
+            );
+
+            Http::assertSent($matches, "provider {$provider} should attach the image");
         }
     }
 

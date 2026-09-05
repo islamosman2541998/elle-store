@@ -12,39 +12,20 @@
 @endphp
 
 @if ($settings->tracking_enabled && $event)
+    {{-- Fires once the pixels have loaded, through the shared bridge. --}}
     <script>
-        window.dataLayer = window.dataLayer || [];
+        (function () {
+            var fire = function () {
+                if (typeof window.elleTrack === 'function') {
+                    window.elleTrack(@js($event), @js($payload), @js($eventId));
+                }
+            };
 
-        window.dataLayer.push({
-            event: '{{ $event }}',
-            event_id: '{{ $eventId }}',
-            ecommerce: @json($payload),
-        });
-
-        @if ($settings->meta_pixel_id)
-            if (typeof fbq === 'function') {
-                fbq('track', '{{ $event }}', @json($payload), {
-                    eventID: '{{ $eventId }}'
-                });
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', fire);
+            } else {
+                fire();
             }
-        @endif
-
-        @if ($settings->tiktok_pixel_id)
-            if (typeof ttq !== 'undefined') {
-                ttq.track('{{ $event }}', @json($payload));
-            }
-        @endif
-
-        @if ($settings->snapchat_pixel_id)
-            if (typeof snaptr === 'function') {
-                snaptr('track', '{{ strtoupper($event) }}', @json($payload));
-            }
-        @endif
-
-        @if ($settings->pinterest_tag_id)
-            if (typeof pintrk === 'function') {
-                pintrk('track', '{{ $event }}', @json($payload));
-            }
-        @endif
+        })();
     </script>
 @endif

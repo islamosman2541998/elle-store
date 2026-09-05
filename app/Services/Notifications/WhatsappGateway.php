@@ -85,7 +85,7 @@ class WhatsappGateway
      *
      * @return array{ok: bool, error: ?string, response: mixed}
      */
-    public function send(string $phone, string $message, string $type = 'generic'): array
+    public function send(string $phone, string $message, string $type = 'generic', ?string $imageUrl = null): array
     {
         $settings = StoreSetting::current();
 
@@ -101,9 +101,9 @@ class WhatsappGateway
 
         try {
             $response = match ($settings->whatsapp_api_provider) {
-                'cloud_api' => $this->sendViaCloudApi($settings, $to, $message),
-                'ultramsg' => $this->sendViaUltraMsg($settings, $to, $message),
-                'twilio' => $this->sendViaTwilio($settings, $to, $message),
+                'cloud_api' => $this->sendViaCloudApi($settings, $to, $message, $imageUrl),
+                'ultramsg' => $this->sendViaUltraMsg($settings, $to, $message, $imageUrl),
+                'twilio' => $this->sendViaTwilio($settings, $to, $message, $imageUrl),
                 default => null,
             };
         } catch (Throwable $e) {
@@ -122,53 +122,101 @@ class WhatsappGateway
             );
         }
 
+        // Not every provider uses the status code to report a refusal.
+        // UltraMsg in particular answers 200 with {"error": "..."} , which
+        // would otherwise be recorded as a successful send.
+        $rejection = $this->rejection($settings->whatsapp_api_provider, $response->json());
+
+        if ($rejection !== null) {
+            return $this->fail($rejection, $type, $response->json());
+        }
+
         Log::info('WhatsApp message sent', ['type' => $type, 'to' => $to]);
 
         return ['ok' => true, 'error' => null, 'response' => $response->json()];
     }
 
-    private function sendViaCloudApi(StoreSetting $settings, string $to, string $message)
+    /**
+     * A refusal hidden inside a 2xx body, or null when the send really worked.
+     */
+    private function rejection(string $provider, mixed $body): ?string
+    {
+        $error = match ($provider) {
+            // {"error": "Instance not found"} comes back with HTTP 200.
+            'ultramsg' => data_get($body, 'error'),
+            // Twilio reports a rejected message with a numeric code.
+            'twilio' => data_get($body, 'code') ? data_get($body, 'message') : null,
+            'cloud_api' => data_get($body, 'error.message'),
+            default => null,
+        };
+
+        if (blank($error)) {
+            return null;
+        }
+
+        return is_string($error) ? $error : json_encode($error, JSON_UNESCAPED_UNICODE);
+    }
+
+    private function sendViaCloudApi(StoreSetting $settings, string $to, string $message, ?string $imageUrl = null)
     {
         $base = rtrim($settings->whatsapp_api_url ?: 'https://graph.facebook.com/v20.0', '/');
+
+        $payload = [
+            'messaging_product' => 'whatsapp',
+            'recipient_type' => 'individual',
+            // Cloud API wants the number without a leading +.
+            'to' => ltrim($to, '+'),
+        ];
+
+        // With an image, the text becomes the caption - one message, not two.
+        $payload += $imageUrl
+            ? ['type' => 'image', 'image' => ['link' => $imageUrl, 'caption' => $message]]
+            : ['type' => 'text', 'text' => ['preview_url' => true, 'body' => $message]];
 
         return Http::timeout(20)
             ->withToken($settings->whatsapp_api_token)
             ->acceptJson()
-            ->post($base . '/' . $settings->whatsapp_sender_id . '/messages', [
-                'messaging_product' => 'whatsapp',
-                'recipient_type' => 'individual',
-                // Cloud API wants the number without a leading +.
-                'to' => ltrim($to, '+'),
-                'type' => 'text',
-                'text' => ['preview_url' => true, 'body' => $message],
-            ]);
+            ->post($base . '/' . $settings->whatsapp_sender_id . '/messages', $payload);
     }
 
-    private function sendViaUltraMsg(StoreSetting $settings, string $to, string $message)
+    private function sendViaUltraMsg(StoreSetting $settings, string $to, string $message, ?string $imageUrl = null)
     {
         $base = rtrim($settings->whatsapp_api_url ?: 'https://api.ultramsg.com', '/');
+        $instance = $base . '/' . $settings->whatsapp_sender_id;
 
-        return Http::timeout(20)
-            ->asForm()
-            ->post($base . '/' . $settings->whatsapp_sender_id . '/messages/chat', [
-                'token' => $settings->whatsapp_api_token,
-                'to' => $to,
-                'body' => $message,
-            ]);
+        // UltraMsg puts images on their own endpoint, with the text as caption.
+        $endpoint = $imageUrl ? '/messages/image' : '/messages/chat';
+
+        $payload = [
+            'token' => $settings->whatsapp_api_token,
+            'to' => $to,
+        ];
+
+        $payload += $imageUrl
+            ? ['image' => $imageUrl, 'caption' => $message]
+            : ['body' => $message];
+
+        return Http::timeout(20)->asForm()->post($instance . $endpoint, $payload);
     }
 
-    private function sendViaTwilio(StoreSetting $settings, string $to, string $message)
+    private function sendViaTwilio(StoreSetting $settings, string $to, string $message, ?string $imageUrl = null)
     {
         $base = rtrim($settings->whatsapp_api_url ?: 'https://api.twilio.com/2010-04-01', '/');
+
+        $payload = [
+            'From' => 'whatsapp:' . $this->normalisePhone($settings->whatsapp_from_number, $settings),
+            'To' => 'whatsapp:' . $to,
+            'Body' => $message,
+        ];
+
+        if ($imageUrl) {
+            $payload['MediaUrl'] = $imageUrl;
+        }
 
         return Http::timeout(20)
             ->withBasicAuth($settings->whatsapp_sender_id, $settings->whatsapp_api_secret)
             ->asForm()
-            ->post($base . '/Accounts/' . $settings->whatsapp_sender_id . '/Messages.json', [
-                'From' => 'whatsapp:' . $this->normalisePhone($settings->whatsapp_from_number, $settings),
-                'To' => 'whatsapp:' . $to,
-                'Body' => $message,
-            ]);
+            ->post($base . '/Accounts/' . $settings->whatsapp_sender_id . '/Messages.json', $payload);
     }
 
     /**

@@ -5,6 +5,8 @@
 </head>
 
 <body class="min-h-screen bg-soft text-dark">
+    @include('site.partials.tracking-noscript')
+
     <div class="flex min-h-screen flex-col">
         @include('site.partials.header')
 

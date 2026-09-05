@@ -1,6 +1,5 @@
 @extends('site.layouts.app')
 
-@section('title', $page->meta_title ?: $page->title)
 
 @section('content')
     <section class="site-section">

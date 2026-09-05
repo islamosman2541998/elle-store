@@ -242,8 +242,35 @@ class OrderShow extends Component
 
     public function render()
     {
+        $order = $this->order();
+
         return view('livewire.site.order-show', [
-            'order' => $this->order(),
+            'order' => $order,
+            // Only set right after checkout, so revisiting the link never
+            // reports the same sale twice.
+            'purchaseTracking' => $this->purchaseTracking($order),
         ]);
+    }
+
+    /**
+     * Report the sale to the pixels and, server-side, to Meta.
+     *
+     * Both sides share one event id so Meta can match the browser event with
+     * the server one and count a single purchase.
+     */
+    private function purchaseTracking($order): ?array
+    {
+        $tracking = app(\App\Services\TrackingEventService::class);
+
+        if (! $tracking->isEnabled() || session('track_purchase_order') !== $order->order_number) {
+            return null;
+        }
+
+        $payload = $tracking->orderPayload($order);
+        $eventId = $tracking->eventId('purchase');
+
+        app(\App\Services\MetaCapiService::class)->sendEvent('Purchase', $payload, $eventId);
+
+        return ['payload' => $payload, 'eventId' => $eventId];
     }
 }

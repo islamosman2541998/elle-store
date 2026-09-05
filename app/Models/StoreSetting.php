@@ -13,6 +13,7 @@ class StoreSetting extends Model
         'store_name_ar',
         'store_name_en',
         'logo',
+        'notification_logo',
         'favicon',
         'email',
         'phone',
@@ -110,6 +111,7 @@ class StoreSetting extends Model
         'whatsapp_sender_id',
         'whatsapp_api_secret',
         'whatsapp_from_number',
+        'whatsapp_send_logo',
         'whatsapp_notify_admin_new_order',
         'whatsapp_notify_admin_new_payment',
         'whatsapp_notify_customer_new_order',
@@ -359,6 +361,49 @@ class StoreSetting extends Model
             ? $this->invoice_terms_ar
             : $this->invoice_terms_en;
     }
+    /**
+     * The logo that rides along with an email or WhatsApp message.
+     *
+     * Falls back to the storefront logo, so a shop that never sets one still
+     * gets branded messages.
+     */
+    public function notificationLogoPath(): ?string
+    {
+        return $this->notification_logo ?: ($this->logo ?: $this->dashboard_logo);
+    }
+
+    public function notificationLogoUrl(): ?string
+    {
+        $path = $this->notificationLogoPath();
+
+        return $path ? asset('storage/' . $path) : null;
+    }
+
+    /**
+     * True when the logo can actually be fetched by an outside service.
+     *
+     * WhatsApp providers download the image themselves, so a URL on a local
+     * development host would simply fail on their side.
+     */
+    public function notificationLogoIsPubliclyReachable(): bool
+    {
+        $url = $this->notificationLogoUrl();
+
+        if (! $url) {
+            return false;
+        }
+
+        $host = parse_url($url, PHP_URL_HOST) ?: '';
+
+        foreach (['localhost', '127.0.0.1', '::1'] as $local) {
+            if ($host === $local) {
+                return false;
+            }
+        }
+
+        return ! preg_match('/\.(test|local|localhost|invalid|example)$/i', $host);
+    }
+
     public function getNewOrderEmailSubjectAttribute(): ?string
     {
         return app()->getLocale() === 'ar'

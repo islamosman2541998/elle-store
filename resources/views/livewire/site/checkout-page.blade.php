@@ -463,3 +463,10 @@
         @endif
     </div>
 </section>
+
+@if (!empty($cart) && $cart->items->count())
+    @include('site.partials.tracking-event', [
+        'event' => 'InitiateCheckout',
+        'payload' => app(\App\Services\TrackingEventService::class)->cartPayload($cart),
+    ])
+@endif

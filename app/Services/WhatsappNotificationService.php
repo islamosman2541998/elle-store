@@ -8,6 +8,7 @@ use App\Models\Shipment;
 use App\Models\StoreSetting;
 use App\Services\Notifications\MessageBuilder;
 use App\Services\Notifications\WhatsappGateway;
+use Illuminate\Support\Facades\Log;
 
 /**
  * WhatsApp messages for order events.
@@ -104,7 +105,32 @@ class WhatsappNotificationService
             return;
         }
 
-        $this->gateway->send($to, $message['body'], $event);
+        $this->gateway->send($to, $message['body'], $event, $this->logoUrl());
+    }
+
+    /**
+     * The brand logo to attach, or null to send plain text.
+     *
+     * Providers fetch the image themselves, so a URL only reachable on the
+     * development machine is left off rather than sent and rejected.
+     */
+    private function logoUrl(): ?string
+    {
+        $settings = StoreSetting::current();
+
+        if (! $settings->whatsapp_send_logo) {
+            return null;
+        }
+
+        if (! $settings->notificationLogoIsPubliclyReachable()) {
+            Log::info('WhatsApp logo skipped: the image URL is not reachable from outside', [
+                'url' => $settings->notificationLogoUrl(),
+            ]);
+
+            return null;
+        }
+
+        return $settings->notificationLogoUrl();
     }
 
     /** The channel is on, configured, and this particular event is enabled. */

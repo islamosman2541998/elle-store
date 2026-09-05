@@ -718,6 +718,26 @@ class StoreSettingResource extends Resource
 
                         Forms\Components\Tabs\Tab::make(__('admin.notification_settings'))
                             ->schema([
+                                // First in the tab: it applies to both channels.
+                                Forms\Components\Section::make(__('admin.message_branding'))
+                                    ->description(__('admin.message_branding_hint'))
+                                    ->columns(2)
+                                    ->schema([
+                                        Forms\Components\FileUpload::make('notification_logo')
+                                            ->label(__('admin.notification_logo'))
+                                            ->helperText(__('admin.notification_logo_hint'))
+                                            ->image()
+                                            ->directory('settings/notifications')
+                                            ->disk('public')
+                                            ->imageEditor()
+                                            ->maxSize(1024),
+
+                                        Forms\Components\Toggle::make('whatsapp_send_logo')
+                                            ->label(__('admin.whatsapp_send_logo'))
+                                            ->helperText(__('admin.whatsapp_send_logo_hint'))
+                                            ->default(false),
+                                    ]),
+
                                 Forms\Components\Section::make(__('admin.mail_server_settings'))
                                     ->description(__('admin.mail_server_hint'))
                                     ->columns(2)
@@ -825,6 +845,11 @@ class StoreSettingResource extends Resource
                                             ->label(__('admin.whatsapp_api_provider'))
                                             ->options(fn () => \App\Services\Notifications\WhatsappGateway::providerOptions())
                                             ->live()
+                                            // Meta refuses free-form text outside a 24h window, which is
+                                            // the one thing filling in credentials does not solve.
+                                            ->helperText(fn (Forms\Get $get) => $get('whatsapp_api_provider') === 'cloud_api'
+                                                ? __('admin.whatsapp_cloud_api_warning')
+                                                : null)
                                             ->visible(fn (Forms\Get $get) => (bool) $get('whatsapp_notifications_enabled')),
 
                                         Forms\Components\TextInput::make('whatsapp_api_url')
