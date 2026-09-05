@@ -675,7 +675,7 @@ class StoreSettingResource extends Resource
                                             ->numeric()
                                             ->minValue(0)
                                             ->maxValue(1)
-                                            ->step(0.05)
+                                            ->step(0.01)
                                             ->default(0.35)
                                             ->helperText(__('admin.opacity_helper')),
 
@@ -688,7 +688,9 @@ class StoreSettingResource extends Resource
                                             ->numeric()
                                             ->minValue(0)
                                             ->maxValue(1)
-                                            ->step(0.05)
+                                            // 0.01, not 0.05: the browser blocks the whole form from
+                                            // submitting when a stored value is not a multiple of the step.
+                                            ->step(0.01)
                                             ->default(0.92)
                                             ->helperText(__('admin.opacity_helper')),
 

@@ -57,8 +57,18 @@ class EditNotificationTemplate extends EditRecord
     private function renderCurrent(string $locale): array
     {
         $builder = app(MessageBuilder::class);
-        $tokens = $builder->sampleTokens();
         $data = $this->data;
+
+        // The sample values are translated too, so an English preview must not
+        // come back filled with an Arabic name and city.
+        $previous = app()->getLocale();
+        app()->setLocale($locale);
+
+        try {
+            $tokens = $builder->sampleTokens();
+        } finally {
+            app()->setLocale($previous);
+        }
 
         return [
             'subject' => $builder->replace((string) ($data["subject_{$locale}"] ?? ''), $tokens),
