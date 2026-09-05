@@ -175,6 +175,41 @@ class StorefrontAdditionsTest extends TestCase
         $this->assertStringContainsString('3 * 86400000', $html, 'the dismissal window is wrong');
     }
 
+    public function test_the_popup_image_backs_the_whole_card(): void
+    {
+        $this->settings([
+            'coupon_popup_enabled' => true,
+            'coupon_popup_title_ar' => 'عرض',
+            'coupon_popup_code' => 'ELLE10',
+            'coupon_popup_image' => 'settings/popup/promo.png',
+            'coupon_popup_overlay' => 65,
+        ]);
+
+        $html = $this->get('/')->getContent();
+
+        $this->assertStringContainsString('has-image', $html);
+        $this->assertStringContainsString('--popup-image: url(', $html);
+        $this->assertStringContainsString('settings/popup/promo.png', $html);
+        $this->assertStringContainsString('--popup-veil: 0.65', $html);
+
+        // The old layout put the picture in a strip of its own above the text.
+        $this->assertStringNotContainsString('coupon-popup-image', $html);
+    }
+
+    public function test_a_popup_without_an_image_asks_for_no_background(): void
+    {
+        $this->settings([
+            'coupon_popup_enabled' => true,
+            'coupon_popup_title_ar' => 'عرض',
+            'coupon_popup_image' => null,
+        ]);
+
+        $html = $this->get('/')->getContent();
+
+        $this->assertStringContainsString('coupon-popup-overlay', $html);
+        $this->assertStringNotContainsString('--popup-image', $html);
+    }
+
     // ------------------------------------------------------- WhatsApp button
 
     public function test_the_whatsapp_button_turns_a_local_number_into_a_wa_me_link(): void

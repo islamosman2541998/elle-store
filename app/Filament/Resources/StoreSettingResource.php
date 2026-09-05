@@ -414,11 +414,21 @@ class StoreSettingResource extends Resource
 
                                         Forms\Components\FileUpload::make('coupon_popup_image')
                                             ->label(__('admin.coupon_popup_image'))
+                                            ->helperText(__('admin.coupon_popup_image_hint'))
                                             ->image()
                                             ->directory('settings/popup')
                                             ->disk('public')
                                             ->imageEditor()
                                             ->maxSize(2048),
+
+                                        Forms\Components\TextInput::make('coupon_popup_overlay')
+                                            ->label(__('admin.coupon_popup_overlay'))
+                                            ->helperText(__('admin.coupon_popup_overlay_hint'))
+                                            ->numeric()
+                                            ->minValue(0)
+                                            ->maxValue(100)
+                                            ->default(80)
+                                            ->suffix('%'),
 
                                         Forms\Components\TextInput::make('coupon_popup_button_label_ar')
                                             ->label(__('admin.coupon_popup_button_label_ar'))

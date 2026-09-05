@@ -1294,4 +1294,10 @@ return [
     'whatsapp_button_message_hint' => 'Typed into the chat box for the customer. Leave empty for none.',
 
     'payment_method_instapay' => 'InstaPay',
+
+    'coupon_popup_image_hint' => 'The image backs the whole card, with the content on top of it.',
+
+    'coupon_popup_overlay' => 'Veil over the image',
+
+    'coupon_popup_overlay_hint' => 'Lower shows more of the image; higher makes the wording clearer. 80% is a balanced choice.',
 ];

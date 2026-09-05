@@ -13,6 +13,10 @@
     $image = $storeSettings->coupon_popup_image
         ? asset('storage/' . $storeSettings->coupon_popup_image)
         : null;
+
+    // How opaque the veil over the image is, so the wording stays readable
+    // whatever picture the shop uploads.
+    $overlay = min(100, max(0, (int) ($storeSettings->coupon_popup_overlay ?? 80))) / 100;
 @endphp
 
 @if ($storeSettings->coupon_popup_enabled && (filled($title) || filled($code)))
@@ -76,7 +80,10 @@
         <div class="coupon-popup-backdrop" x-on:click="close()"></div>
 
         <div
-            class="coupon-popup"
+            @class(['coupon-popup', 'has-image' => (bool) $image])
+            @if ($image)
+                style="--popup-image: url('{{ $image }}'); --popup-veil: {{ $overlay }};"
+            @endif
             x-show="open"
             x-transition:enter="coupon-popup-enter"
             x-transition:enter-start="coupon-popup-enter-start"
@@ -88,12 +95,6 @@
                     <path d="M18 6 6 18M6 6l12 12"></path>
                 </svg>
             </button>
-
-            @if ($image)
-                <div class="coupon-popup-image">
-                    <img src="{{ $image }}" alt="{{ $title }}" loading="lazy">
-                </div>
-            @endif
 
             <div class="coupon-popup-body">
                 <span class="coupon-popup-ribbon">
