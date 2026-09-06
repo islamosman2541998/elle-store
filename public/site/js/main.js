@@ -210,751 +210,223 @@ if (siteHeader) {
 });
 /*
 |--------------------------------------------------------------------------
-| Featured Categories Slider
+| Home Carousels
 |--------------------------------------------------------------------------
+|
+| Categories, products, best sellers, new arrivals, flash sales and brands
+| all behave the same way, so they share one implementation.
+|
+| Two things the previous per-section copies got wrong:
+|
+|   1. They advanced first and then, 450ms later, checked whether the end had
+|      been reached - and if so jumped straight back to the start. The last
+|      card was on screen for half a second instead of a full interval, so a
+|      shopper never actually saw it. Wrapping now happens on the NEXT tick:
+|      if we are already at the end, go back to the start, otherwise advance.
+|
+|   2. They used document.querySelector, one element each. Featured products
+|      and best sellers share the data-products-slider name, so the second
+|      one on the page was never wired up at all - dead arrows, no autoplay.
+|      Every matching slider is initialised, and its arrows are looked up
+|      inside its own <section>.
 */
-const categoriesSlider = document.querySelector("[data-categories-slider]");
-const categoriesNext = document.querySelector("[data-categories-next]");
-const categoriesPrev = document.querySelector("[data-categories-prev]");
+(function () {
+    const CAROUSELS = [
+        { name: "categories", card: ".home-category-card", fallback: 245, interval: 3500 },
+        { name: "products", card: ".product-card", fallback: 260, interval: 4000 },
+        { name: "new-products", card: ".product-card", fallback: 260, interval: 4000 },
+        { name: "flash-sales", card: ".product-card", fallback: 260, interval: 4000 },
+        { name: "brands", card: ".home-brand-card", fallback: 230, interval: 3800 },
+    ];
 
-if (categoriesSlider) {
-    let categoryTimer = null;
-    let isDown = false;
-    let startX = 0;
-    let scrollLeft = 0;
+    /** How far one step moves: a whole card plus the gap beside it. */
+    function stepSize(slider, config) {
+        const card = slider.querySelector(config.card);
 
-    function getCategoryScrollAmount() {
-        const firstCard = categoriesSlider.querySelector(".home-category-card");
-
-        if (!firstCard) {
-            return 245;
+        if (!card) {
+            return config.fallback;
         }
 
         const gap = window.innerWidth < 768 ? 16 : 20;
         const cardsToMove = window.innerWidth < 768 ? 2 : 1;
 
-        return (firstCard.offsetWidth + gap) * cardsToMove;
+        return (card.offsetWidth + gap) * cardsToMove;
     }
 
-    function categoriesScrollNext() {
-        const isRtl = document.documentElement.getAttribute("dir") === "rtl";
-        const amount = getCategoryScrollAmount();
+    /**
+     * Distance from the start, always positive.
+     *
+     * In a right-to-left column browsers report scrollLeft as a negative
+     * number, so the raw value cannot be compared against scrollWidth.
+     */
+    function distanceFromStart(slider) {
+        return Math.abs(slider.scrollLeft);
+    }
 
-        categoriesSlider.scrollBy({
-            left: isRtl ? -amount : amount,
-            behavior: "smooth",
-        });
+    function maxScroll(slider) {
+        return slider.scrollWidth - slider.clientWidth;
+    }
 
-        const maxScroll =
-            categoriesSlider.scrollWidth - categoriesSlider.clientWidth;
+    function atEnd(slider) {
+        // A couple of pixels of slack: sub-pixel widths mean the scroll
+        // position rarely lands exactly on the maximum.
+        return distanceFromStart(slider) >= maxScroll(slider) - 4;
+    }
 
-        setTimeout(function () {
-            if (!isRtl && categoriesSlider.scrollLeft >= maxScroll - 10) {
-                categoriesSlider.scrollTo({ left: 0, behavior: "smooth" });
+    function atStart(slider) {
+        return distanceFromStart(slider) <= 4;
+    }
+
+    function isRtl() {
+        return document.documentElement.getAttribute("dir") === "rtl";
+    }
+
+    function scrollToStart(slider) {
+        slider.scrollTo({ left: 0, behavior: "smooth" });
+    }
+
+    function scrollToEnd(slider) {
+        const end = maxScroll(slider);
+
+        slider.scrollTo({ left: isRtl() ? -end : end, behavior: "smooth" });
+    }
+
+    function step(slider, config, direction) {
+        const amount = stepSize(slider, config) * direction;
+
+        slider.scrollBy({ left: isRtl() ? -amount : amount, behavior: "smooth" });
+    }
+
+    function init(slider, config) {
+        const section = slider.closest("section") || document;
+        const next = section.querySelector("[data-" + config.name + "-next]");
+        const prev = section.querySelector("[data-" + config.name + "-prev]");
+
+        let timer = null;
+        let dragging = false;
+        let dragStartX = 0;
+        let dragStartScroll = 0;
+
+        /* Wrapping happens here, before moving: a slider sitting on the last
+           card goes back to the start on the next tick, which leaves that
+           card on screen for the whole interval like every other one. */
+        function goNext() {
+            if (atEnd(slider)) {
+                scrollToStart(slider);
+
+                return;
             }
 
-            if (
-                isRtl &&
-                Math.abs(categoriesSlider.scrollLeft) >= maxScroll - 10
-            ) {
-                categoriesSlider.scrollTo({ left: 0, behavior: "smooth" });
-            }
-        }, 450);
-    }
-
-    function categoriesScrollPrev() {
-        const isRtl = document.documentElement.getAttribute("dir") === "rtl";
-        const amount = getCategoryScrollAmount();
-
-        categoriesSlider.scrollBy({
-            left: isRtl ? amount : -amount,
-            behavior: "smooth",
-        });
-    }
-
-    function startCategoriesAutoPlay() {
-        stopCategoriesAutoPlay();
-
-        if (categoriesSlider.scrollWidth <= categoriesSlider.clientWidth) {
-            return;
+            step(slider, config, 1);
         }
 
-        categoryTimer = setInterval(categoriesScrollNext, 3000);
-    }
+        function goPrev() {
+            if (atStart(slider)) {
+                scrollToEnd(slider);
 
-    function stopCategoriesAutoPlay() {
-        if (categoryTimer) {
-            clearInterval(categoryTimer);
-            categoryTimer = null;
-        }
-    }
-
-    if (categoriesNext) {
-        categoriesNext.addEventListener("click", function () {
-            categoriesScrollNext();
-            startCategoriesAutoPlay();
-        });
-    }
-
-    if (categoriesPrev) {
-        categoriesPrev.addEventListener("click", function () {
-            categoriesScrollPrev();
-            startCategoriesAutoPlay();
-        });
-    }
-
-    categoriesSlider.addEventListener("mousedown", function (event) {
-        isDown = true;
-        categoriesSlider.classList.add("is-dragging");
-        startX = event.pageX - categoriesSlider.offsetLeft;
-        scrollLeft = categoriesSlider.scrollLeft;
-        stopCategoriesAutoPlay();
-    });
-
-    categoriesSlider.addEventListener("mouseleave", function () {
-        if (!isDown) {
-            return;
-        }
-
-        isDown = false;
-        categoriesSlider.classList.remove("is-dragging");
-        startCategoriesAutoPlay();
-    });
-
-    categoriesSlider.addEventListener("mouseup", function () {
-        isDown = false;
-        categoriesSlider.classList.remove("is-dragging");
-        startCategoriesAutoPlay();
-    });
-
-    categoriesSlider.addEventListener("mousemove", function (event) {
-        if (!isDown) {
-            return;
-        }
-
-        event.preventDefault();
-
-        const x = event.pageX - categoriesSlider.offsetLeft;
-        const walk = (x - startX) * 1.5;
-
-        categoriesSlider.scrollLeft = scrollLeft - walk;
-    });
-
-    categoriesSlider.addEventListener(
-        "touchstart",
-        function () {
-            stopCategoriesAutoPlay();
-        },
-        { passive: true },
-    );
-
-    categoriesSlider.addEventListener("touchend", function () {
-        startCategoriesAutoPlay();
-    });
-
-    window.addEventListener("resize", function () {
-        startCategoriesAutoPlay();
-    });
-
-    startCategoriesAutoPlay();
-}
-/*
-|--------------------------------------------------------------------------
-| Featured Products Slider
-|--------------------------------------------------------------------------
-*/
-const productsSlider = document.querySelector("[data-products-slider]");
-const productsNext = document.querySelector("[data-products-next]");
-const productsPrev = document.querySelector("[data-products-prev]");
-
-if (productsSlider) {
-    let productTimer = null;
-    let isProductDown = false;
-    let productStartX = 0;
-    let productScrollLeft = 0;
-
-    function getProductScrollAmount() {
-        const firstCard = productsSlider.querySelector(".product-card");
-
-        if (!firstCard) {
-            return 260;
-        }
-
-        const gap = window.innerWidth < 768 ? 16 : 20;
-        const cardsToMove = window.innerWidth < 768 ? 2 : 1;
-
-        return (firstCard.offsetWidth + gap) * cardsToMove;
-    }
-
-    function productsScrollNext() {
-        const isRtl = document.documentElement.getAttribute("dir") === "rtl";
-        const amount = getProductScrollAmount();
-
-        productsSlider.scrollBy({
-            left: isRtl ? -amount : amount,
-            behavior: "smooth",
-        });
-
-        const maxScroll =
-            productsSlider.scrollWidth - productsSlider.clientWidth;
-
-        setTimeout(function () {
-            if (!isRtl && productsSlider.scrollLeft >= maxScroll - 10) {
-                productsSlider.scrollTo({ left: 0, behavior: "smooth" });
+                return;
             }
 
-            if (
-                isRtl &&
-                Math.abs(productsSlider.scrollLeft) >= maxScroll - 10
-            ) {
-                productsSlider.scrollTo({ left: 0, behavior: "smooth" });
+            step(slider, config, -1);
+        }
+
+        function stopAutoPlay() {
+            if (timer) {
+                clearInterval(timer);
+                timer = null;
             }
-        }, 450);
-    }
-
-    function productsScrollPrev() {
-        const isRtl = document.documentElement.getAttribute("dir") === "rtl";
-        const amount = getProductScrollAmount();
-
-        productsSlider.scrollBy({
-            left: isRtl ? amount : -amount,
-            behavior: "smooth",
-        });
-    }
-
-    function startProductsAutoPlay() {
-        stopProductsAutoPlay();
-
-        if (productsSlider.scrollWidth <= productsSlider.clientWidth) {
-            return;
         }
 
-        productTimer = setInterval(productsScrollNext, 3500);
-    }
+        function startAutoPlay() {
+            stopAutoPlay();
 
-    function stopProductsAutoPlay() {
-        if (productTimer) {
-            clearInterval(productTimer);
-            productTimer = null;
-        }
-    }
-
-    if (productsNext) {
-        productsNext.addEventListener("click", function () {
-            productsScrollNext();
-            startProductsAutoPlay();
-        });
-    }
-
-    if (productsPrev) {
-        productsPrev.addEventListener("click", function () {
-            productsScrollPrev();
-            startProductsAutoPlay();
-        });
-    }
-
-    productsSlider.addEventListener("mousedown", function (event) {
-        isProductDown = true;
-        productsSlider.classList.add("is-dragging");
-        productStartX = event.pageX - productsSlider.offsetLeft;
-        productScrollLeft = productsSlider.scrollLeft;
-        stopProductsAutoPlay();
-    });
-
-    productsSlider.addEventListener("mouseleave", function () {
-        if (!isProductDown) {
-            return;
-        }
-
-        isProductDown = false;
-        productsSlider.classList.remove("is-dragging");
-        startProductsAutoPlay();
-    });
-
-    productsSlider.addEventListener("mouseup", function () {
-        isProductDown = false;
-        productsSlider.classList.remove("is-dragging");
-        startProductsAutoPlay();
-    });
-
-    productsSlider.addEventListener("mousemove", function (event) {
-        if (!isProductDown) {
-            return;
-        }
-
-        event.preventDefault();
-
-        const x = event.pageX - productsSlider.offsetLeft;
-        const walk = (x - productStartX) * 1.4;
-
-        productsSlider.scrollLeft = productScrollLeft - walk;
-    });
-
-    productsSlider.addEventListener(
-        "touchstart",
-        function () {
-            stopProductsAutoPlay();
-        },
-        { passive: true },
-    );
-
-    productsSlider.addEventListener("touchend", function () {
-        startProductsAutoPlay();
-    });
-
-    window.addEventListener("resize", function () {
-        startProductsAutoPlay();
-    });
-
-    startProductsAutoPlay();
-}
-
-/*
-|--------------------------------------------------------------------------
-| New Products Slider
-|--------------------------------------------------------------------------
-*/
-const newProductsSlider = document.querySelector("[data-new-products-slider]");
-const newProductsNext = document.querySelector("[data-new-products-next]");
-const newProductsPrev = document.querySelector("[data-new-products-prev]");
-
-if (newProductsSlider) {
-    let newProductTimer = null;
-    let isNewProductDown = false;
-    let newProductStartX = 0;
-    let newProductScrollLeft = 0;
-
-    function getNewProductScrollAmount() {
-        const firstCard = newProductsSlider.querySelector(".product-card");
-
-        if (!firstCard) {
-            return 260;
-        }
-
-        const gap = window.innerWidth < 768 ? 16 : 20;
-        const cardsToMove = window.innerWidth < 768 ? 2 : 1;
-
-        return (firstCard.offsetWidth + gap) * cardsToMove;
-    }
-
-    function newProductsScrollNext() {
-        const isRtl = document.documentElement.getAttribute("dir") === "rtl";
-        const amount = getNewProductScrollAmount();
-
-        newProductsSlider.scrollBy({
-            left: isRtl ? -amount : amount,
-            behavior: "smooth",
-        });
-
-        const maxScroll =
-            newProductsSlider.scrollWidth - newProductsSlider.clientWidth;
-
-        setTimeout(function () {
-            if (!isRtl && newProductsSlider.scrollLeft >= maxScroll - 10) {
-                newProductsSlider.scrollTo({ left: 0, behavior: "smooth" });
+            // Nothing to scroll: everything already fits.
+            if (slider.scrollWidth <= slider.clientWidth) {
+                return;
             }
 
-            if (
-                isRtl &&
-                Math.abs(newProductsSlider.scrollLeft) >= maxScroll - 10
-            ) {
-                newProductsSlider.scrollTo({ left: 0, behavior: "smooth" });
-            }
-        }, 450);
-    }
-
-    function newProductsScrollPrev() {
-        const isRtl = document.documentElement.getAttribute("dir") === "rtl";
-        const amount = getNewProductScrollAmount();
-
-        newProductsSlider.scrollBy({
-            left: isRtl ? amount : -amount,
-            behavior: "smooth",
-        });
-    }
-
-    function startNewProductsAutoPlay() {
-        stopNewProductsAutoPlay();
-
-        if (newProductsSlider.scrollWidth <= newProductsSlider.clientWidth) {
-            return;
+            timer = setInterval(goNext, config.interval);
         }
 
-        newProductTimer = setInterval(newProductsScrollNext, 3600);
-    }
-
-    function stopNewProductsAutoPlay() {
-        if (newProductTimer) {
-            clearInterval(newProductTimer);
-            newProductTimer = null;
-        }
-    }
-
-    if (newProductsNext) {
-        newProductsNext.addEventListener("click", function () {
-            newProductsScrollNext();
-            startNewProductsAutoPlay();
-        });
-    }
-
-    if (newProductsPrev) {
-        newProductsPrev.addEventListener("click", function () {
-            newProductsScrollPrev();
-            startNewProductsAutoPlay();
-        });
-    }
-
-    newProductsSlider.addEventListener("mousedown", function (event) {
-        isNewProductDown = true;
-        newProductsSlider.classList.add("is-dragging");
-        newProductStartX = event.pageX - newProductsSlider.offsetLeft;
-        newProductScrollLeft = newProductsSlider.scrollLeft;
-        stopNewProductsAutoPlay();
-    });
-
-    newProductsSlider.addEventListener("mouseleave", function () {
-        if (!isNewProductDown) {
-            return;
+        if (next) {
+            next.addEventListener("click", function () {
+                goNext();
+                startAutoPlay();
+            });
         }
 
-        isNewProductDown = false;
-        newProductsSlider.classList.remove("is-dragging");
-        startNewProductsAutoPlay();
-    });
-
-    newProductsSlider.addEventListener("mouseup", function () {
-        isNewProductDown = false;
-        newProductsSlider.classList.remove("is-dragging");
-        startNewProductsAutoPlay();
-    });
-
-    newProductsSlider.addEventListener("mousemove", function (event) {
-        if (!isNewProductDown) {
-            return;
+        if (prev) {
+            prev.addEventListener("click", function () {
+                goPrev();
+                startAutoPlay();
+            });
         }
 
-        event.preventDefault();
+        // Reading a card should not have it slide away underneath you.
+        slider.addEventListener("mouseenter", stopAutoPlay);
+        slider.addEventListener("mouseleave", startAutoPlay);
+        slider.addEventListener("focusin", stopAutoPlay);
+        slider.addEventListener("touchstart", stopAutoPlay, { passive: true });
+        slider.addEventListener("touchend", startAutoPlay);
 
-        const x = event.pageX - newProductsSlider.offsetLeft;
-        const walk = (x - newProductStartX) * 1.4;
-
-        newProductsSlider.scrollLeft = newProductScrollLeft - walk;
-    });
-
-    newProductsSlider.addEventListener(
-        "touchstart",
-        function () {
-            stopNewProductsAutoPlay();
-        },
-        { passive: true },
-    );
-
-    newProductsSlider.addEventListener("touchend", function () {
-        startNewProductsAutoPlay();
-    });
-
-    window.addEventListener("resize", function () {
-        startNewProductsAutoPlay();
-    });
-
-    startNewProductsAutoPlay();
-}
-/*
-|--------------------------------------------------------------------------
-| Flash Sales Slider
-|--------------------------------------------------------------------------
-*/
-const flashSalesSlider = document.querySelector("[data-flash-sales-slider]");
-const flashSalesNext = document.querySelector("[data-flash-sales-next]");
-const flashSalesPrev = document.querySelector("[data-flash-sales-prev]");
-
-if (flashSalesSlider) {
-    let flashSaleTimer = null;
-    let isFlashSaleDown = false;
-    let flashSaleStartX = 0;
-    let flashSaleScrollLeft = 0;
-
-    function getFlashSaleScrollAmount() {
-        const firstCard = flashSalesSlider.querySelector(".product-card");
-
-        if (!firstCard) {
-            return 260;
-        }
-
-        const gap = window.innerWidth < 768 ? 16 : 20;
-        const cardsToMove = window.innerWidth < 768 ? 2 : 1;
-
-        return (firstCard.offsetWidth + gap) * cardsToMove;
-    }
-
-    function flashSalesScrollNext() {
-        const isRtl = document.documentElement.getAttribute("dir") === "rtl";
-        const amount = getFlashSaleScrollAmount();
-
-        flashSalesSlider.scrollBy({
-            left: isRtl ? -amount : amount,
-            behavior: "smooth",
+        // Drag to scroll with a mouse.
+        slider.addEventListener("mousedown", function (event) {
+            dragging = true;
+            slider.classList.add("is-dragging");
+            dragStartX = event.pageX - slider.offsetLeft;
+            dragStartScroll = slider.scrollLeft;
+            stopAutoPlay();
         });
 
-        const maxScroll =
-            flashSalesSlider.scrollWidth - flashSalesSlider.clientWidth;
-
-        setTimeout(function () {
-            if (!isRtl && flashSalesSlider.scrollLeft >= maxScroll - 10) {
-                flashSalesSlider.scrollTo({ left: 0, behavior: "smooth" });
+        slider.addEventListener("mousemove", function (event) {
+            if (!dragging) {
+                return;
             }
 
-            if (
-                isRtl &&
-                Math.abs(flashSalesSlider.scrollLeft) >= maxScroll - 10
-            ) {
-                flashSalesSlider.scrollTo({ left: 0, behavior: "smooth" });
-            }
-        }, 450);
-    }
+            event.preventDefault();
 
-    function flashSalesScrollPrev() {
-        const isRtl = document.documentElement.getAttribute("dir") === "rtl";
-        const amount = getFlashSaleScrollAmount();
+            const x = event.pageX - slider.offsetLeft;
 
-        flashSalesSlider.scrollBy({
-            left: isRtl ? amount : -amount,
-            behavior: "smooth",
-        });
-    }
-
-    function startFlashSalesAutoPlay() {
-        stopFlashSalesAutoPlay();
-
-        if (flashSalesSlider.scrollWidth <= flashSalesSlider.clientWidth) {
-            return;
-        }
-
-        flashSaleTimer = setInterval(flashSalesScrollNext, 3400);
-    }
-
-    function stopFlashSalesAutoPlay() {
-        if (flashSaleTimer) {
-            clearInterval(flashSaleTimer);
-            flashSaleTimer = null;
-        }
-    }
-
-    if (flashSalesNext) {
-        flashSalesNext.addEventListener("click", function () {
-            flashSalesScrollNext();
-            startFlashSalesAutoPlay();
-        });
-    }
-
-    if (flashSalesPrev) {
-        flashSalesPrev.addEventListener("click", function () {
-            flashSalesScrollPrev();
-            startFlashSalesAutoPlay();
-        });
-    }
-
-    flashSalesSlider.addEventListener("mousedown", function (event) {
-        isFlashSaleDown = true;
-        flashSalesSlider.classList.add("is-dragging");
-        flashSaleStartX = event.pageX - flashSalesSlider.offsetLeft;
-        flashSaleScrollLeft = flashSalesSlider.scrollLeft;
-        stopFlashSalesAutoPlay();
-    });
-
-    flashSalesSlider.addEventListener("mouseleave", function () {
-        if (!isFlashSaleDown) {
-            return;
-        }
-
-        isFlashSaleDown = false;
-        flashSalesSlider.classList.remove("is-dragging");
-        startFlashSalesAutoPlay();
-    });
-
-    flashSalesSlider.addEventListener("mouseup", function () {
-        isFlashSaleDown = false;
-        flashSalesSlider.classList.remove("is-dragging");
-        startFlashSalesAutoPlay();
-    });
-
-    flashSalesSlider.addEventListener("mousemove", function (event) {
-        if (!isFlashSaleDown) {
-            return;
-        }
-
-        event.preventDefault();
-
-        const x = event.pageX - flashSalesSlider.offsetLeft;
-        const walk = (x - flashSaleStartX) * 1.4;
-
-        flashSalesSlider.scrollLeft = flashSaleScrollLeft - walk;
-    });
-
-    flashSalesSlider.addEventListener(
-        "touchstart",
-        function () {
-            stopFlashSalesAutoPlay();
-        },
-        { passive: true },
-    );
-
-    flashSalesSlider.addEventListener("touchend", function () {
-        startFlashSalesAutoPlay();
-    });
-
-    window.addEventListener("resize", function () {
-        startFlashSalesAutoPlay();
-    });
-
-    startFlashSalesAutoPlay();
-}
-/*
-|--------------------------------------------------------------------------
-| Brands Slider
-|--------------------------------------------------------------------------
-*/
-const brandsSlider = document.querySelector("[data-brands-slider]");
-const brandsNext = document.querySelector("[data-brands-next]");
-const brandsPrev = document.querySelector("[data-brands-prev]");
-
-if (brandsSlider) {
-    let brandTimer = null;
-    let isBrandDown = false;
-    let brandStartX = 0;
-    let brandScrollLeft = 0;
-
-    function getBrandScrollAmount() {
-        const firstCard = brandsSlider.querySelector(".home-brand-card");
-
-        if (!firstCard) {
-            return 230;
-        }
-
-        const gap = window.innerWidth < 768 ? 16 : 20;
-        const cardsToMove = window.innerWidth < 768 ? 2 : 1;
-
-        return (firstCard.offsetWidth + gap) * cardsToMove;
-    }
-
-    function brandsScrollNext() {
-        const isRtl = document.documentElement.getAttribute("dir") === "rtl";
-        const amount = getBrandScrollAmount();
-
-        brandsSlider.scrollBy({
-            left: isRtl ? -amount : amount,
-            behavior: "smooth",
+            slider.scrollLeft = dragStartScroll - (x - dragStartX) * 1.5;
         });
 
-        const maxScroll = brandsSlider.scrollWidth - brandsSlider.clientWidth;
-
-        setTimeout(function () {
-            if (!isRtl && brandsSlider.scrollLeft >= maxScroll - 10) {
-                brandsSlider.scrollTo({ left: 0, behavior: "smooth" });
+        function endDrag() {
+            if (!dragging) {
+                return;
             }
 
-            if (isRtl && Math.abs(brandsSlider.scrollLeft) >= maxScroll - 10) {
-                brandsSlider.scrollTo({ left: 0, behavior: "smooth" });
-            }
-        }, 450);
-    }
-
-    function brandsScrollPrev() {
-        const isRtl = document.documentElement.getAttribute("dir") === "rtl";
-        const amount = getBrandScrollAmount();
-
-        brandsSlider.scrollBy({
-            left: isRtl ? amount : -amount,
-            behavior: "smooth",
-        });
-    }
-
-    function startBrandsAutoPlay() {
-        stopBrandsAutoPlay();
-
-        if (brandsSlider.scrollWidth <= brandsSlider.clientWidth) {
-            return;
+            dragging = false;
+            slider.classList.remove("is-dragging");
+            startAutoPlay();
         }
 
-        brandTimer = setInterval(brandsScrollNext, 3800);
-    }
+        slider.addEventListener("mouseup", endDrag);
+        slider.addEventListener("mouseleave", endDrag);
 
-    function stopBrandsAutoPlay() {
-        if (brandTimer) {
-            clearInterval(brandTimer);
-            brandTimer = null;
+        // A slider that fits at one width may not fit at another.
+        window.addEventListener("resize", startAutoPlay);
+
+        // Autoplay only while the section is actually on screen.
+        if (typeof IntersectionObserver === "function") {
+            new IntersectionObserver(function (entries) {
+                entries.forEach(function (entry) {
+                    entry.isIntersecting ? startAutoPlay() : stopAutoPlay();
+                });
+            }, { threshold: 0.2 }).observe(slider);
+        } else {
+            startAutoPlay();
         }
     }
 
-    if (brandsNext) {
-        brandsNext.addEventListener("click", function () {
-            brandsScrollNext();
-            startBrandsAutoPlay();
-        });
-    }
-
-    if (brandsPrev) {
-        brandsPrev.addEventListener("click", function () {
-            brandsScrollPrev();
-            startBrandsAutoPlay();
-        });
-    }
-
-    brandsSlider.addEventListener("mousedown", function (event) {
-        isBrandDown = true;
-        brandsSlider.classList.add("is-dragging");
-        brandStartX = event.pageX - brandsSlider.offsetLeft;
-        brandScrollLeft = brandsSlider.scrollLeft;
-        stopBrandsAutoPlay();
+    CAROUSELS.forEach(function (config) {
+        document
+            .querySelectorAll("[data-" + config.name + "-slider]")
+            .forEach(function (slider) {
+                init(slider, config);
+            });
     });
+})();
 
-    brandsSlider.addEventListener("mouseleave", function () {
-        if (!isBrandDown) {
-            return;
-        }
-
-        isBrandDown = false;
-        brandsSlider.classList.remove("is-dragging");
-        startBrandsAutoPlay();
-    });
-
-    brandsSlider.addEventListener("mouseup", function () {
-        isBrandDown = false;
-        brandsSlider.classList.remove("is-dragging");
-        startBrandsAutoPlay();
-    });
-
-    brandsSlider.addEventListener("mousemove", function (event) {
-        if (!isBrandDown) {
-            return;
-        }
-
-        event.preventDefault();
-
-        const x = event.pageX - brandsSlider.offsetLeft;
-        const walk = (x - brandStartX) * 1.4;
-
-        brandsSlider.scrollLeft = brandScrollLeft - walk;
-    });
-
-    brandsSlider.addEventListener(
-        "touchstart",
-        function () {
-            stopBrandsAutoPlay();
-        },
-        { passive: true },
-    );
-
-    brandsSlider.addEventListener("touchend", function () {
-        startBrandsAutoPlay();
-    });
-
-    window.addEventListener("resize", function () {
-        startBrandsAutoPlay();
-    });
-
-    startBrandsAutoPlay();
-}
 
 /*
 |--------------------------------------------------------------------------
