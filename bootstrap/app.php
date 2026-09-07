@@ -17,10 +17,23 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
-         $middleware->web(append: [
-        SetLocale::class,
-        EnsureStoreIsActive::class,
-    ]);
+        /*
+         * Shared hosting terminates TLS in front of PHP, so the request that
+         * reaches Laravel looks like plain http. Every generated URL then came
+         * out as http:// on an https:// page: browsers quietly upgrade an
+         * <img>, but they block the XHR the upload field uses to read a file,
+         * which left the image picker spinning forever.
+         *
+         * Trusting the forwarded headers also restores the visitor's real IP,
+         * which login throttling and the activity log had been recording as
+         * the proxy's address for everyone.
+         */
+        $middleware->trustProxies(at: '*');
+
+        $middleware->web(append: [
+            SetLocale::class,
+            EnsureStoreIsActive::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //

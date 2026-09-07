@@ -41,7 +41,13 @@ return [
         'public' => [
             'driver' => 'local',
             'root' => storage_path('app/public'),
-            'url' => env('APP_URL').'/storage',
+            /*
+             * Root-relative on purpose. Built from APP_URL this became an
+             * absolute link with a baked-in scheme and host, so a stale or
+             * http:// APP_URL broke the dashboard's image fields on a live
+             * https site. A relative URL is always the site the page is on.
+             */
+            'url' => '/storage',
             'visibility' => 'public',
             'throw' => false,
             'report' => false,
